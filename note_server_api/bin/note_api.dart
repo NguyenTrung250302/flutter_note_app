@@ -41,15 +41,21 @@ Future<void> setupApi(Router router) async {
 
   // Lấy một ghi chú theo id (GET)
   router.get('/notes/<id>', (Request request, String id) async {
-    var result = await _connection.query('SELECT * FROM notes WHERE id = @id',
-        substitutionValues: {'id': int.parse(id)});
-    if (result.isEmpty) {
-      return Response.notFound('Note not found');
+    try {
+      var noteId = int.parse(id); // Chuyển đổi id thành số
+      var result = await _connection.query('SELECT * FROM notes WHERE id = @id',
+          substitutionValues: {'id': noteId});
+      if (result.isEmpty) {
+        return Response.notFound('Note not found');
+      }
+      return Response.ok(
+        jsonEncode(_mapRowToJson(result.first)),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.badRequest(
+          body: 'Invalid ID format', headers: {'Content-Type': 'text/plain'});
     }
-    return Response.ok(
-      jsonEncode(_mapRowToJson(result.first)),
-      headers: {'Content-Type': 'application/json'},
-    );
   });
 
   // Thêm một ghi chú mới (POST)
@@ -63,36 +69,53 @@ Future<void> setupApi(Router router) async {
     await _connection.query(
         'INSERT INTO notes (title, content) VALUES (@title, @content)',
         substitutionValues: {'title': title, 'content': content});
-    return Response.ok('Note created', headers: {'Content-Type': 'text/plain'});
+    return Response.ok(jsonEncode({'message': 'Note created successfully'}),
+        headers: {'Content-Type': 'application/json'});
   });
 
+// Cập nhật ghi chú (PUT)
   router.put('/notes/<id>', (Request request, String id) async {
-    print('PUT request received for id: $id'); // Logging
-    var payload = await request.readAsString();
-    var data = jsonDecode(payload);
+    try {
+      var noteId = int.parse(id);
+      var payload = await request.readAsString();
+      var data = jsonDecode(payload);
 
-    var title = data['title'];
-    var content = data['content'];
+      var title = data['title'];
+      var content = data['content'];
 
-    await _connection.query(
-        'UPDATE notes SET title = @title, content = @content WHERE id = @id',
-        substitutionValues: {
-          'title': title,
-          'content': content,
-          'id': int.parse(id)
-        });
-    return Response.ok('Note updated', headers: {'Content-Type': 'text/plain'});
+      await _connection.query(
+          'UPDATE notes SET title = @title, content = @content WHERE id = @id',
+          substitutionValues: {
+            'title': title,
+            'content': content,
+            'id': noteId
+          });
+
+      return Response.ok(jsonEncode({'message': 'Note updated successfully'}),
+          headers: {'Content-Type': 'application/json'});
+    } catch (e) {
+      return Response.badRequest(
+          body: 'Invalid ID format', headers: {'Content-Type': 'text/plain'});
+    }
   });
 
 // Xóa ghi chú (DELETE)
   router.delete('/notes/<id>', (Request request, String id) async {
-    var result = await _connection.query('DELETE FROM notes WHERE id = @id',
-        substitutionValues: {'id': int.parse(id)});
+    try {
+      var noteId = int.parse(id);
+      var result = await _connection.query('DELETE FROM notes WHERE id = @id',
+          substitutionValues: {'id': noteId});
 
-    if (result.affectedRowCount == 0) {
-      return Response.notFound('Note not found');
+      if (result.affectedRowCount == 0) {
+        return Response.notFound(jsonEncode({'message': 'Note not found'}),
+            headers: {'Content-Type': 'application/json'});
+      }
+
+      return Response.ok(jsonEncode({'message': 'Note deleted successfully'}),
+          headers: {'Content-Type': 'application/json'});
+    } catch (e) {
+      return Response.badRequest(
+          body: 'Invalid ID format', headers: {'Content-Type': 'text/plain'});
     }
-
-    return Response.ok('Note deleted', headers: {'Content-Type': 'text/plain'});
   });
 }

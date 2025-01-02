@@ -1,7 +1,7 @@
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
-import 'dart:io'; // Thêm import này để sử dụng InternetAddress
+
 import 'note_api.dart';
 
 // Middleware CORS tùy chỉnh
@@ -46,6 +46,6 @@ Future<void> main() async {
   });
 
   // Chạy server trên tất cả các địa chỉ IPv4
-  final server = await shelf_io.serve(handler, 'localhost', 8080);
+  final server = await shelf_io.serve(handler, '192.168.1.123', 8888);
   print('Server running on http://${server.address.host}:${server.port}');
 }
