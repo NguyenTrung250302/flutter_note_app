@@ -1,6 +1,7 @@
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
+import 'dart:io'; // Thêm import này để sử dụng InternetAddress
 
 import 'note_api.dart';
 
@@ -45,7 +46,24 @@ Future<void> main() async {
     });
   });
 
-  // Chạy server trên tất cả các địa chỉ IPv4
-  final server = await shelf_io.serve(handler, '192.168.1.123', 8888);
-  print('Server running on http://${server.address.host}:${server.port}');
+  // Lấy địa chỉ IP của máy tính (lấy địa chỉ IP của mạng kết nối)
+  String ipAddress = await _getLocalIp();
+
+  // Chạy server trên địa chỉ IP của máy
+  final server = await shelf_io.serve(handler, ipAddress, 8888);
+  print('Server running on http://$ipAddress:${server.port}');
+}
+
+// Hàm để lấy địa chỉ IP của máy tính đang kết nối vào mạng
+Future<String> _getLocalIp() async {
+  final interfaces = await NetworkInterface.list();
+  for (var interface in interfaces) {
+    for (var addr in interface.addresses) {
+      // Tìm địa chỉ IPv4
+      if (addr.type == InternetAddressType.IPv4) {
+        return addr.address;
+      }
+    }
+  }
+  throw Exception('Không thể tìm thấy địa chỉ IP của máy');
 }
